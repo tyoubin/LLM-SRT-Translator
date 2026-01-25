@@ -16,7 +16,7 @@ This tool is designed for efficiently translating subtitle files, offering featu
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/LLM-SRT-Translator.git
+    git clone https://github.com/tyoubin/LLM-SRT-Translator
     cd LLM-SRT-Translator
     ```
 
