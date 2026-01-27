@@ -56,21 +56,29 @@ LLM_MODEL=gemma3:27b
 Run the script from the command line, providing the path to your input SRT file and the target language.
 
 ```bash
-python main.py -t "[Target Language] [path_to_your_file.srt]"
+python main.py path_to_your_file.srt -t "German"
 ```
 
 ### Arguments
 
 -   `input`: (Required) The path to the source SRT file.
--   `--target_lang`, `-t`: (Required) The target language for the translation (e.g., 'French', 'English').
+-   `--target_lang`, `-t`: (Required) The target language for the translation (e.g., 'French', 'German').
 -   `--source_lang`, `-s`: (Optional) The source language. If provided, it helps the model produce a more accurate translation.
+-   `--output`, `-o`: (Optional) Path to the output file or directory. If a directory is provided, the result will be saved there with a predictable filename.
 -   `--batch_size`, `-b`: (Optional) The number of subtitle entries to process in each batch. Defaults to 10.
 
 ## Output Format
 
-The output is a new SRT file with a name like `[original_name].[language].[timestamp].srt`.
+The output is a new SRT file named `[original_name].[language].srt` (e.g., `movie.German.srt`). This predictable naming scheme is ideal for batch processing.
 
 Each subtitle entry in the output file is formatted to include both the translation and the original text:
+
+```
+1
+00:00:01,000 --> 00:00:04,000
+Hallo Welt
+Hello world
+```
 
 ## License
 

@@ -39,6 +39,7 @@ class TranslatorConfig:
         self.input_file = Path(args.input)
         self.target_lang = args.target_lang
         self.source_lang = args.source_lang
+        self.output_arg = args.output
         self.batch_size = args.batch_size
 
         # Timeout for first request (local model loading takes time)
@@ -79,12 +80,24 @@ class ProgressManager:
             os.remove(self.progress_file)
 
 
-def generate_output_filename(input_path: Path, target_lang: str) -> Path:
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+def generate_output_filename(input_path: Path, target_lang: str, output_arg: Optional[str] = None) -> Path:
+    """
+    Generate output filename:
+    1. If output_arg is provided and is a directory, use input filename + target lang inside that directory.
+    2. If output_arg is provided and is a file path, use it directly.
+    3. If no output_arg, use input filename + target lang in the same directory as input.
+    """
     # Clean special characters from language name
     clean_lang = "".join(c for c in target_lang if c.isalnum())
-    new_name = f"{input_path.stem}.{clean_lang}.{timestamp}.srt"
-    return input_path.parent / new_name
+    default_name = f"{input_path.stem}.{clean_lang}.srt"
+
+    if output_arg:
+        out_path = Path(output_arg)
+        if out_path.is_dir():
+            return out_path / default_name
+        return out_path
+
+    return input_path.parent / default_name
 
 
 def get_llm_client(config: TranslatorConfig):
@@ -153,6 +166,7 @@ def main():
     parser.add_argument("--target_lang", "-t", required=True,
                         help="Target language (e.g., 'German')")
     parser.add_argument("--source_lang", "-s", help="Source language (optional, e.g., 'English')")
+    parser.add_argument("--output", "-o", help="Output file path or directory (optional)")
     parser.add_argument("--batch_size", "-b", type=int,
                         default=DEFAULT_BATCH_SIZE, help="Batch size")
 
@@ -179,7 +193,7 @@ def main():
 
     start_index = 0
     output_path = generate_output_filename(
-        config.input_file, config.target_lang)
+        config.input_file, config.target_lang, config.output_arg)
 
     if progress_data:
         saved_count = progress_data.get("processed_count", 0)
