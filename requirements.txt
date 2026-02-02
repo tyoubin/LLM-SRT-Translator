@@ -2,3 +2,4 @@ pysrt
 requests
 openai
 python-dotenv
+pytest
