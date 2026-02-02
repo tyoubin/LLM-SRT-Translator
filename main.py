@@ -200,8 +200,8 @@ def main():
         saved_path = progress_data.get("output_file")
 
         # Simple interactive confirmation
-        print(f"\nFound unfinished task progress: processed {saved_count}/{total_subs} items.")
-        print(f"Last output file: {saved_path}")
+        logger.info(f"Found unfinished task progress: processed {saved_count}/{total_subs} items.")
+        logger.info(f"Last output file: {saved_path}")
         user_choice = input("Continue last progress? (y/n) [y]: ").lower().strip()
 
         if user_choice in ('', 'y', 'yes'):
