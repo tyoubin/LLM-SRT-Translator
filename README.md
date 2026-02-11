@@ -66,6 +66,7 @@ python main.py path_to_your_file.srt -t "German"
 -   `--source_lang`, `-s`: (Optional) The source language. If provided, it helps the model produce a more accurate translation.
 -   `--output`, `-o`: (Optional) Path to the output file or directory. If a directory is provided, the result will be saved there with a predictable filename.
 -   `--batch_size`, `-b`: (Optional) The number of subtitle entries to process in each batch. Defaults to 10.
+-   `--no-bilingual`: (Optional) Flag that toggles off placing the original text below each translation so the output remains a single language.
 
 ## Output Format
 
@@ -79,6 +80,8 @@ Each subtitle entry in the output file is formatted to include both the translat
 Hallo Welt
 Hello world
 ```
+
+You can disable the bilingual pairing by supplying `--no-bilingual` if you prefer mono-language subtitles.
 
 ## License
 

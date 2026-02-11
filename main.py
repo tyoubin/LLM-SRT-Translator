@@ -41,6 +41,7 @@ class TranslatorConfig:
         self.source_lang = args.source_lang
         self.output_arg = args.output
         self.batch_size = args.batch_size
+        self.bilingual = args.bilingual
 
         # Timeout for first request (local model loading takes time)
         self.first_timeout = 300.0
@@ -169,6 +170,9 @@ def main():
     parser.add_argument("--output", "-o", help="Output file path or directory (optional)")
     parser.add_argument("--batch_size", "-b", type=int,
                         default=DEFAULT_BATCH_SIZE, help="Batch size")
+    parser.add_argument("--no-bilingual", dest="bilingual", action="store_false",
+                        help="Do not include the original text below the translation (mono-language output)")
+    parser.set_defaults(bilingual=True)
 
     args = parser.parse_args()
     config = TranslatorConfig(args)
@@ -259,8 +263,11 @@ def main():
             for sub, trans_text, orig_text in zip(batch_subs, translated_lines, original_texts):
                 # Ensure trans_text is not None
                 trans_text = trans_text if trans_text else ""
-                # Set format: first line translated, second line original
-                sub.text = f"{trans_text}\n{orig_text}"
+                # Set format: include original text below translation only when bilingual output is enabled
+                if config.bilingual:
+                    sub.text = f"{trans_text}\n{orig_text}"
+                else:
+                    sub.text = trans_text
 
             # Save file after each batch to prevent memory loss
             subs.save(str(output_path), encoding='utf-8')
