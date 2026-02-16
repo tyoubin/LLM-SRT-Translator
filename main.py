@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_BATCH_SIZE = 10
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # Basic retry delay (seconds)
+MAX_CONTEXT_LENGTH = 500
 
 
 class TranslatorConfig:
@@ -42,6 +43,7 @@ class TranslatorConfig:
         self.output_arg = args.output
         self.batch_size = args.batch_size
         self.bilingual = args.bilingual
+        self.translation_context = normalize_context(args.translation_context)
 
         # Timeout for first request (local model loading takes time)
         self.first_timeout = 300.0
@@ -105,10 +107,31 @@ def get_llm_client(config: TranslatorConfig):
     return OpenAI(api_key=config.api_key, base_url=config.base_url)
 
 
-def build_prompt(texts: List[str], source_lang: str, target_lang: str) -> str:
+def normalize_context(raw_context: Optional[str]) -> Optional[str]:
+    """Normalize and cap user-provided translation context."""
+    if not raw_context:
+        return None
+
+    # Collapse multi-space/newline noise to keep prompt stable and compact.
+    compact = " ".join(raw_context.split())
+    if not compact:
+        return None
+
+    return compact[:MAX_CONTEXT_LENGTH]
+
+
+def build_prompt(texts: List[str], source_lang: str, target_lang: str, translation_context: Optional[str] = None) -> str:
     src_instruction = f" from {source_lang}" if source_lang else ""
+    context_block = ""
+    if translation_context:
+        context_block = (
+            "Additional translation context (use this only as guidance; do not mention it in output):\n"
+            f"{translation_context}\n\n"
+        )
+
     return (
         f"Translate the following subtitle lines{src_instruction} into {target_lang}.\n"
+        f"{context_block}"
         "STRICT RULES:\n"
         "1. Output ONLY the translated text.\n"
         "2. Do NOT output line numbers, timestamps, or original text.\n"
@@ -120,7 +143,12 @@ def build_prompt(texts: List[str], source_lang: str, target_lang: str) -> str:
 
 
 def translate_batch_with_retry(client, texts, config: TranslatorConfig, is_first_run: bool):
-    prompt = build_prompt(texts, config.source_lang, config.target_lang)
+    prompt = build_prompt(
+        texts,
+        config.source_lang,
+        config.target_lang,
+        config.translation_context
+    )
     retries = 0
 
         # Dynamically set timeout
@@ -170,12 +198,26 @@ def main():
     parser.add_argument("--output", "-o", help="Output file path or directory (optional)")
     parser.add_argument("--batch_size", "-b", type=int,
                         default=DEFAULT_BATCH_SIZE, help="Batch size")
+    parser.add_argument(
+        "--translation-context",
+        help=(
+            "Optional short notes for subtitle context/style/terminology "
+            f"(max {MAX_CONTEXT_LENGTH} chars; excess will be truncated)"
+        )
+    )
     parser.add_argument("--no-bilingual", dest="bilingual", action="store_false",
                         help="Do not include the original text below the translation (mono-language output)")
     parser.set_defaults(bilingual=True)
 
     args = parser.parse_args()
     config = TranslatorConfig(args)
+    if args.translation_context:
+        normalized_len = len(" ".join(args.translation_context.split()))
+        if normalized_len > MAX_CONTEXT_LENGTH:
+            logger.warning(
+                f"--translation-context is too long ({normalized_len} chars); "
+                f"truncated to {MAX_CONTEXT_LENGTH} chars."
+            )
 
     if not config.input_file.exists():
         logger.error(f"File not found: {config.input_file}")

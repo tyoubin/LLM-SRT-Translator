@@ -66,7 +66,15 @@ python main.py path_to_your_file.srt -t "German"
 -   `--source_lang`, `-s`: (Optional) The source language. If provided, it helps the model produce a more accurate translation.
 -   `--output`, `-o`: (Optional) Path to the output file or directory. If a directory is provided, the result will be saved there with a predictable filename.
 -   `--batch_size`, `-b`: (Optional) The number of subtitle entries to process in each batch. Defaults to 10.
+-   `--translation-context`: (Optional) Short guidance about content, tone, or terminology (e.g., "medical drama, keep patient-facing language natural"). The tool normalizes whitespace and truncates to 500 characters.
 -   `--no-bilingual`: (Optional) Flag that toggles off placing the original text below each translation so the output remains a single language.
+
+### Context-aware Translation Example
+
+```bash
+python main.py episode.srt -t "Japanese" \
+  --translation-context "Cyberpunk detective story; keep slang sharp and modern; translate 'neural lace' consistently as 神経レース."
+```
 
 ## Output Format
 
