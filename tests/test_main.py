@@ -15,6 +15,8 @@ from main import (
     normalize_context,
     build_prompt,
     translate_batch_with_retry,
+    wait_for_request_interval,
+    non_negative_float,
     TranslatorConfig,
     ProgressManager,
     APITimeoutError,
@@ -66,6 +68,7 @@ def make_config(tmp_path, translation_context=None):
         source_lang="English",
         output=str(tmp_path / "output.srt"),
         batch_size=5,
+        request_interval=0.0,
         bilingual=True,
         translation_context=translation_context,
     )
@@ -118,6 +121,41 @@ def test_normalize_context_trim_and_truncate():
 
     assert len(normalized_long) == MAX_CONTEXT_LENGTH
     assert not normalized_long.startswith(" ")
+
+
+def test_non_negative_float_validation():
+    assert non_negative_float("0") == 0.0
+    assert non_negative_float("1.25") == 1.25
+
+    with pytest.raises(Exception):
+        non_negative_float("-0.1")
+
+
+def test_wait_for_request_interval_noop(monkeypatch):
+    sleeps = []
+    now = 100.0
+
+    monkeypatch.setattr("main.time.sleep", lambda duration: sleeps.append(duration))
+    monkeypatch.setattr("main.time.monotonic", lambda: now)
+
+    wait_for_request_interval(last_request_ts=None, min_interval=1.0)
+    wait_for_request_interval(last_request_ts=99.0, min_interval=0.0)
+    wait_for_request_interval(last_request_ts=98.0, min_interval=1.0)
+
+    assert sleeps == []
+
+
+def test_wait_for_request_interval_sleeps_remaining(monkeypatch):
+    sleeps = []
+    now = 100.0
+
+    monkeypatch.setattr("main.time.sleep", lambda duration: sleeps.append(duration))
+    monkeypatch.setattr("main.time.monotonic", lambda: now)
+
+    wait_for_request_interval(last_request_ts=99.7, min_interval=1.0)
+
+    assert len(sleeps) == 1
+    assert sleeps[0] == pytest.approx(0.7)
 
 
 def test_build_prompt_includes_context_and_source():

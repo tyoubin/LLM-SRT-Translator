@@ -28,6 +28,7 @@ DEFAULT_BATCH_SIZE = 10
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # Basic retry delay (seconds)
 MAX_CONTEXT_LENGTH = 500
+DEFAULT_REQUEST_INTERVAL = 0.0
 
 
 class TranslatorConfig:
@@ -44,11 +45,31 @@ class TranslatorConfig:
         self.batch_size = args.batch_size
         self.bilingual = args.bilingual
         self.translation_context = normalize_context(args.translation_context)
+        self.request_interval = args.request_interval
 
         # Timeout for first request (local model loading takes time)
         self.first_timeout = 300.0
         # Timeout for subsequent requests
         self.normal_timeout = 60.0
+
+
+def non_negative_float(value: str) -> float:
+    parsed = float(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must be >= 0")
+    return parsed
+
+
+def wait_for_request_interval(last_request_ts: Optional[float], min_interval: float):
+    """Enforce a minimum delay between request start times."""
+    if min_interval <= 0 or last_request_ts is None:
+        return
+
+    elapsed = time.monotonic() - last_request_ts
+    remaining = min_interval - elapsed
+    if remaining > 0:
+        logger.info(f"Rate-limit pacing: sleep {remaining:.2f}s before next request")
+        time.sleep(remaining)
 
 
 class ProgressManager:
@@ -199,6 +220,12 @@ def main():
     parser.add_argument("--batch_size", "-b", type=int,
                         default=DEFAULT_BATCH_SIZE, help="Batch size")
     parser.add_argument(
+        "--request-interval",
+        type=non_negative_float,
+        default=DEFAULT_REQUEST_INTERVAL,
+        help="Minimum seconds to wait between batch requests (default: 0)",
+    )
+    parser.add_argument(
         "--translation-context",
         help=(
             "Optional short notes for subtitle context/style/terminology "
@@ -266,6 +293,7 @@ def main():
 
     # Record start time
     is_first_batch = True
+    last_request_ts = None
 
     try:
         # Main loop
@@ -282,6 +310,8 @@ def main():
                 f"Translating batch {i // config.batch_size + 1} (progress: {i}/{total_subs})...")
 
             try:
+                wait_for_request_interval(last_request_ts, config.request_interval)
+                last_request_ts = time.monotonic()
                 translated_lines = translate_batch_with_retry(
                     client,
                     original_texts,
