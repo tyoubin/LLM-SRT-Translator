@@ -142,24 +142,37 @@ def normalize_context(raw_context: Optional[str]) -> Optional[str]:
 
 
 def build_prompt(texts: List[str], source_lang: str, target_lang: str, translation_context: Optional[str] = None) -> str:
-    src_instruction = f" from {source_lang}" if source_lang else ""
+    src_instruction = f"Source language: {source_lang}\n" if source_lang else ""
     context_block = ""
     if translation_context:
         context_block = (
-            "Additional translation context (use this only as guidance; do not mention it in output):\n"
-            f"{translation_context}\n\n"
+            "Context notes (guidance only; do not mention in output):\n"
+            f"{translation_context}\n"
         )
 
     return (
-        f"Translate the following subtitle lines{src_instruction} into {target_lang}.\n"
+        "You are translating subtitle lines.\n"
+        f"{src_instruction}"
+        f"Target language: {target_lang}\n"
         f"{context_block}"
-        "STRICT RULES:\n"
-        "1. Output ONLY the translated text.\n"
-        "2. Do NOT output line numbers, timestamps, or original text.\n"
-        "3. Maintain the exact same number of lines as input.\n"
-        "4. Keep the tone suitable for subtitles (concise).\n"
-        "5. No explanations, no markdown, no quotes.\n\n"
-        "Input:\n" + "\n".join(texts)
+        f"Number of input lines: {len(texts)}\n\n"
+        "Follow these rules exactly:\n"
+        "1) Return exactly the same number of lines as input.\n"
+        "2) One output line per input line, same order.\n"
+        "3) Output only translated text lines.\n"
+        "4) Do not output numbering, labels, markdown, quotes, or explanations.\n"
+        "5) Keep subtitle style: natural, concise, and easy to read.\n"
+        "6) Keep names, numbers, and punctuation accurate.\n"
+        "7) If a line cannot be translated, copy it unchanged.\n\n"
+        "Example format:\n"
+        "Input lines (2):\n"
+        "Hello.\n"
+        "Let's go!\n"
+        "Output lines (2):\n"
+        "<translated line 1>\n"
+        "<translated line 2>\n\n"
+        "Now translate these input lines:\n"
+        + "\n".join(texts)
     )
 
 
