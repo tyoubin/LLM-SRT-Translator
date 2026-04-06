@@ -1,13 +1,17 @@
 from types import SimpleNamespace
 from pathlib import Path
+import importlib
 import json
+import os
 import sys
 
 import pytest
+from dotenv import dotenv_values
 
 # Ensure repo root is on sys.path for imports
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import main as main_module
 from main import (
     MAX_CONTEXT_LENGTH,
     RETRY_DELAY,
@@ -161,17 +165,19 @@ def test_wait_for_request_interval_sleeps_remaining(monkeypatch):
 def test_build_prompt_includes_context_and_source():
     prompt = build_prompt(["Hello"], source_lang="English", target_lang="German", translation_context="Formal tone")
 
-    assert "from English" in prompt
-    assert "Additional translation context" in prompt
+    assert "Source language: English" in prompt
+    assert "Target language: German" in prompt
+    assert "Context notes (guidance only; do not mention in output):" in prompt
     assert "Formal tone" in prompt
-    assert "STRICT RULES" in prompt
-    assert "Input:\nHello" in prompt
+    assert "Follow these rules exactly:" in prompt
+    assert "Now translate these input lines:\nHello" in prompt
 
 
 def test_build_prompt_without_source_lang():
     prompt = build_prompt(["Hi"], source_lang="", target_lang="Spanish")
 
-    assert "Translate the following subtitle lines from" not in prompt
+    assert "Source language:" not in prompt
+    assert "Target language: Spanish" in prompt
 
 
 def test_translate_batch_with_retry_success(tmp_path):
@@ -226,3 +232,12 @@ def test_progress_manager_handles_corrupted_file(tmp_path):
     pm.progress_file.write_text("not json")
 
     assert pm.load() is None
+
+
+def test_dotenv_overrides_existing_environment_variable(monkeypatch):
+    expected_base_url = dotenv_values(main_module.ENV_FILE)["LLM_BASE_URL"]
+    monkeypatch.setenv("LLM_BASE_URL", "http://localhost:11434/v1")
+
+    importlib.reload(main_module)
+
+    assert os.getenv("LLM_BASE_URL") == expected_base_url
