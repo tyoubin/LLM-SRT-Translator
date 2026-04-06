@@ -12,8 +12,8 @@ import pysrt
 from dotenv import load_dotenv
 from openai import OpenAI, APITimeoutError, APIConnectionError, RateLimitError
 
-# Load .env file (if exists)
-load_dotenv()
+PROJECT_ROOT = Path(__file__).resolve().parent
+ENV_FILE = PROJECT_ROOT / ".env"
 
 # ================= Configure logging =================
 logging.basicConfig(
@@ -22,6 +22,10 @@ logging.basicConfig(
     datefmt="%H:%M:%S"
 )
 logger = logging.getLogger(__name__)
+
+# Load project-local .env explicitly so IDE/debug runs do not depend on cwd.
+# `override=True` ensures IDE-provided/stale env vars do not mask `.env` values.
+load_dotenv(dotenv_path=ENV_FILE, override=True)
 
 # ================= Constant definitions =================
 DEFAULT_BATCH_SIZE = 10
@@ -251,6 +255,12 @@ def main():
 
     args = parser.parse_args()
     config = TranslatorConfig(args)
+    logger.info(
+        "LLM config loaded: base_url=%s model=%s env_file=%s",
+        config.base_url,
+        config.model,
+        ENV_FILE if ENV_FILE.exists() else "(not found)",
+    )
     if args.translation_context:
         normalized_len = len(" ".join(args.translation_context.split()))
         if normalized_len > MAX_CONTEXT_LENGTH:
