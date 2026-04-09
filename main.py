@@ -162,7 +162,7 @@ def build_prompt(texts: List[str], source_lang: str, target_lang: str, translati
         f"Number of input lines: {len(texts)}\n\n"
         "Follow these rules exactly:\n"
         "1) Return exactly the same number of lines as input.\n"
-        "2) One output line per input line, same order.\n"
+        "2) One output line per input line, same order. If an original sentence is sliced into multiple lines, you may change the order to fit the translated text.\n"
         "3) Output only translated text lines.\n"
         "4) Do not output numbering, labels, markdown, quotes, or explanations.\n"
         "5) Keep subtitle style: natural, concise, and easy to read.\n"
