@@ -1,5 +1,6 @@
-pysrt
-requests
+httpx[socks]
 openai
+pysrt
 python-dotenv
 pytest
+requests

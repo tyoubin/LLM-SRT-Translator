@@ -33,6 +33,7 @@ MAX_RETRIES = 3
 RETRY_DELAY = 2  # Basic retry delay (seconds)
 MAX_CONTEXT_LENGTH = 500
 DEFAULT_REQUEST_INTERVAL = 0.0
+DEFAULT_NORMAL_TIMEOUT = 60.0
 
 
 class TranslatorConfig:
@@ -54,7 +55,7 @@ class TranslatorConfig:
         # Timeout for first request (local model loading takes time)
         self.first_timeout = 300.0
         # Timeout for subsequent requests
-        self.normal_timeout = 60.0
+        self.normal_timeout = args.normal_timeout
 
 
 def non_negative_float(value: str) -> float:
@@ -241,6 +242,12 @@ def main():
         type=non_negative_float,
         default=DEFAULT_REQUEST_INTERVAL,
         help="Minimum seconds to wait between batch requests (default: 0)",
+    )
+    parser.add_argument(
+        "--normal-timeout",
+        type=non_negative_float,
+        default=DEFAULT_NORMAL_TIMEOUT,
+        help=f"Timeout in seconds for non-first requests (default: {DEFAULT_NORMAL_TIMEOUT})",
     )
     parser.add_argument(
         "--translation-context",
