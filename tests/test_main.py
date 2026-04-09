@@ -46,8 +46,10 @@ class DummyCompletions:
     def __init__(self, responses):
         self.responses = responses
         self.call_count = 0
+        self.last_kwargs = None
 
     def create(self, **kwargs):
+        self.last_kwargs = kwargs
         if self.call_count >= len(self.responses):
             raise RuntimeError("More calls than responses")
 
@@ -73,8 +75,10 @@ def make_config(tmp_path, translation_context=None):
         output=str(tmp_path / "output.srt"),
         batch_size=5,
         request_interval=0.0,
+        normal_timeout=60.0,
         bilingual=True,
         translation_context=translation_context,
+        no_thinking=False,
     )
     return TranslatorConfig(args)
 
@@ -206,6 +210,17 @@ def test_translate_batch_with_retry_retries(monkeypatch, tmp_path):
 
     assert result == ["Final line"]
     assert sleeps == [RETRY_DELAY * (2 ** 0), RETRY_DELAY * (2 ** 1)]
+
+
+def test_translate_batch_with_retry_no_thinking_sets_extra_body(tmp_path):
+    config = make_config(tmp_path)
+    config.no_thinking = True
+    client = DummyClient(["Translated\n"])
+
+    result = translate_batch_with_retry(client, ["Original"], config, is_first_run=False)
+
+    assert result == ["Translated"]
+    assert client.chat.completions.last_kwargs["extra_body"] == {"enable_thinking": False}
 
 
 def test_progress_manager_save_load_delete(tmp_path):

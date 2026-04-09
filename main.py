@@ -51,6 +51,7 @@ class TranslatorConfig:
         self.bilingual = args.bilingual
         self.translation_context = normalize_context(args.translation_context)
         self.request_interval = args.request_interval
+        self.no_thinking = args.no_thinking
 
         # Timeout for first request (local model loading takes time)
         self.first_timeout = 300.0
@@ -198,16 +199,21 @@ def translate_batch_with_retry(client, texts, config: TranslatorConfig, is_first
             if is_first_run:
                 logger.info(f"First request, waking up model (timeout limit: {current_timeout}s)...")
 
-            response = client.chat.completions.create(
-                model=config.model,
-                messages=[
+            request_kwargs = {
+                "model": config.model,
+                "messages": [
                     {"role": "system",
                         "content": "You are a professional subtitle translator."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.3,
-                timeout=current_timeout
-            )
+                "temperature": 0.3,
+                "timeout": current_timeout
+            }
+            if config.no_thinking:
+                # Common OpenAI-compatible switch (e.g. Qwen-compatible gateways).
+                request_kwargs["extra_body"] = {"enable_thinking": False}
+
+            response = client.chat.completions.create(**request_kwargs)
 
             content = response.choices[0].message.content.strip()
             lines = [line.strip()
@@ -255,6 +261,13 @@ def main():
             "Optional short notes for subtitle context/style/terminology "
             f"(max {MAX_CONTEXT_LENGTH} chars; excess will be truncated)"
         )
+    )
+    parser.add_argument(
+        "--no-thinking",
+        "-nt",
+        dest="no_thinking",
+        action="store_true",
+        help="Disable model thinking/reasoning mode via OpenAI-compatible extra_body(enable_thinking=false)",
     )
     parser.add_argument("--no-bilingual", dest="bilingual", action="store_false",
                         help="Do not include the original text below the translation (mono-language output)")

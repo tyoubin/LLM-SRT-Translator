@@ -69,6 +69,7 @@ python main.py path_to_your_file.srt -t "German"
 -   `--normal-timeout`: (Optional) Timeout in seconds for non-first batch requests. Useful when tuning `--batch_size` with slower/faster models. Defaults to `60`.
 -   `--request-interval`: (Optional) Minimum seconds to wait between batch API requests. Use this to stay within provider RPM limits. Defaults to `0` (no extra delay).
 -   `--translation-context`: (Optional) Short guidance about content, tone, or terminology (e.g., "medical drama, keep patient-facing language natural"). The tool normalizes whitespace and truncates to 500 characters.
+-   `--no-thinking`, `-nt`: (Optional) Disable model thinking/reasoning mode for OpenAI-compatible backends by sending `extra_body.enable_thinking=false`.
 -   `--no-bilingual`: (Optional) Flag that toggles off placing the original text below each translation so the output remains a single language.
 
 ### Context-aware Translation Example
